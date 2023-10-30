@@ -1,5 +1,5 @@
 CC = g++
-CCFLAGS = -std=c++17 -Wall 
+CCFLAGS = -O3 -std=c++17 -Wall 
 LINKOPT = -lpthread
 
 all: pi
