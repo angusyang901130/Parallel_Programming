@@ -41,24 +41,34 @@ void workerThreadStart(WorkerArgs *const args)
 
     // double startTime = CycleTimer::currentSeconds();
 
-    int rows_per_thread;
-    int totalRows;
+    
     int rank = args->threadId;
     int height = args->height;
     int width = args->width;
 
-    if(args->height % args->numThreads)
-        rows_per_thread = height / args->numThreads + 1;
-    else rows_per_thread = height / args->numThreads;
+    // int rows_per_thread;
+    // int totalRows;
+    // if(args->height % args->numThreads)
+    //     rows_per_thread = height / args->numThreads + 1;
+    // else rows_per_thread = height / args->numThreads;
 
-    totalRows = rows_per_thread * rank <= height 
-                ? rows_per_thread : height - rank * rows_per_thread;
+    // totalRows = rows_per_thread * rank <= height 
+    //             ? rows_per_thread : height - rank * rows_per_thread;
 
-    mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, 
+    // mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, 
+    //                     width, height,
+    //                     rank*rows_per_thread, totalRows,
+    //                     args->maxIterations,
+    //                     args->output);
+
+    for(int i = rank; i < height; i += args->numThreads){
+        mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, 
                         width, height,
-                        rows_per_thread * rank, totalRows,
+                        i, 1,
                         args->maxIterations,
                         args->output);
+    }
+    
 
     // double endTime = CycleTimer::currentSeconds();
 
