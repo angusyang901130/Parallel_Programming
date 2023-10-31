@@ -78,7 +78,8 @@ int main(int argc, char* argv[]) {
     pthread_mutex_destroy(&mutex);
     free(thread_handles);
 
-    cout << "Estimated Value of PI: " << setprecision(8) << pi_estimate << endl;
+    // cout << "Estimated Value of PI: " << setprecision(8) << pi_estimate << endl;
+    cout << setprecision(8) << pi_estimate << endl;
 
     return 0;
 }
