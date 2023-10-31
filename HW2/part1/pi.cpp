@@ -4,7 +4,6 @@
 #include <climits>
 #include <iomanip>
 #include <cmath>
-#include <x86intrin.h>
 
 using namespace std;
 
@@ -21,7 +20,7 @@ void* random_toss(void* rank) {
     long long local_n_in_circle = 0;
     unsigned int seed = time(NULL);
 
-    long bias = (RAND_MAX+1) / 2;
+    long bias = ceil(RAND_MAX / 2.0);
 
     long value_x, value_y;
     double v_x, v_y;
