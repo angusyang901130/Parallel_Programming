@@ -39,6 +39,8 @@ void workerThreadStart(WorkerArgs *const args)
 
     // printf("Hello world from thread %d\n", args->threadId);
 
+    // double startTime = CycleTimer::currentSeconds();
+
     int rows_per_thread;
     int totalRows;
     int rank = args->threadId;
@@ -57,6 +59,10 @@ void workerThreadStart(WorkerArgs *const args)
                         rows_per_thread * rank, totalRows,
                         args->maxIterations,
                         args->output);
+
+    // double endTime = CycleTimer::currentSeconds();
+
+    // printf("Thread %d time: [%lf] ms\n", rank, (endTime-startTime)*1000);
 
 }
 
