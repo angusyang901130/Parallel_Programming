@@ -27,7 +27,8 @@ void* random_toss(void* rank) {
     unsigned int seed = time(NULL);
 
     __m256 one_v = _mm256_set1_ps(1);
-    __m256 v_max = _mm256_set1_ps(bias);
+    __m256 ps_bias = _mm256_set1_ps(bias);
+    __m256i i_bias = _mm256_set1_epi32(bias);
 
     long values_x[VECTOR_SIZE];
     long values_y[VECTOR_SIZE];
@@ -40,8 +41,8 @@ void* random_toss(void* rank) {
         
         for (int i = 0; i < VECTOR_SIZE; ++i) {
             if(toss+i < iter_fin){
-                values_x[i] = (rand_r(&seed) - bias);
-                values_y[i] = (rand_r(&seed) - bias);
+                values_x[i] = rand_r(&seed);
+                values_y[i] = rand_r(&seed);
             }else{
                 values_x[i] = RAND_MAX;
                 values_y[i] = RAND_MAX;
@@ -51,14 +52,17 @@ void* random_toss(void* rank) {
         __m256i i32_x = _mm256_set_epi32(values_x[7], values_x[6], values_x[5], values_x[4], values_x[3], values_x[2], values_x[1], values_x[0]);
         __m256i i32_y = _mm256_set_epi32(values_y[7], values_y[6], values_y[5], values_y[4], values_y[3], values_y[2], values_y[1], values_y[0]);
 
+        i32_x = _mm256_sub_epi32(i32_x, i_bias);
+        i32_y = _mm256_sub_epi32(i32_y, i_bias);
+
         __m256 ps_x = _mm256_cvtepi32_ps(i32_x);
         __m256 ps_y = _mm256_cvtepi32_ps(i32_y);
         
         // __m256 pd_x = _mm256_cvtps_ps(ps_x);
         // __m256 pd_y = _mm256_cvtps_ps(ps_y);
 
-        __m256 v_x = _mm256_div_ps(ps_x, v_max);
-        __m256 v_y = _mm256_div_ps(ps_y, v_max);
+        __m256 v_x = _mm256_div_ps(ps_x, ps_bias);
+        __m256 v_y = _mm256_div_ps(ps_y, ps_bias);
 
         // Convert to doubles and calculate the square of the distances in parallel
         __m256 v_x_squared = _mm256_mul_ps(v_x, v_x);
