@@ -23,12 +23,11 @@ void* random_toss(void* rank) {
     long long cur_rank = (long long)rank;
 
     long long local_n_in_circle = 0;
+    long bias = RAND_MAX / 2;
+    unsigned int seed = time(NULL);
 
-    __m256 v_max = _mm256_set1_ps(1);
-    __m256 one_v = _mm256_set1_ps(INT_MAX);
-
-    struct drand48_data buffer;
-    srand48_r(time(NULL), &buffer);
+    __m256 one_v = _mm256_set1_ps(1);
+    __m256 v_max = _mm256_set1_ps(bias);
 
     long values_x[VECTOR_SIZE];
     long values_y[VECTOR_SIZE];
@@ -41,11 +40,11 @@ void* random_toss(void* rank) {
         
         for (int i = 0; i < VECTOR_SIZE; ++i) {
             if(toss+i < iter_fin){
-                mrand48_r(&buffer, &values_x[i]);
-                mrand48_r(&buffer, &values_y[i]);
+                values_x[i] = (rand_r(&seed) - bias);
+                values_y[i] = (rand_r(&seed) - bias);
             }else{
-                values_x[i] = INT_MAX;
-                values_y[i] = INT_MAX;
+                values_x[i] = RAND_MAX;
+                values_y[i] = RAND_MAX;
             }
         }
 
@@ -58,8 +57,8 @@ void* random_toss(void* rank) {
         // __m256 pd_x = _mm256_cvtps_ps(ps_x);
         // __m256 pd_y = _mm256_cvtps_ps(ps_y);
 
-        __m256 v_x = _mm256_div_ps(ps_x, one_v);
-        __m256 v_y = _mm256_div_ps(ps_y, one_v);
+        __m256 v_x = _mm256_div_ps(ps_x, v_max);
+        __m256 v_y = _mm256_div_ps(ps_y, v_max);
 
         // Convert to doubles and calculate the square of the distances in parallel
         __m256 v_x_squared = _mm256_mul_ps(v_x, v_x);
@@ -67,7 +66,7 @@ void* random_toss(void* rank) {
         __m256 v_squared = _mm256_add_ps(v_x_squared, v_y_squared);
 
         // Check if the squared distances are less than or equal to 1 (in parallel)
-        __m256 v_cmp = _mm256_cmp_ps(v_max, v_squared, _CMP_GT_OQ);
+        __m256 v_cmp = _mm256_cmp_ps(one_v, v_squared, _CMP_GT_OQ);
         local_n_in_circle += _mm_popcnt_u32(_mm256_movemask_ps(v_cmp));
     }
 
