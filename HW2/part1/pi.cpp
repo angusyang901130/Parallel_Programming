@@ -20,8 +20,6 @@ void* random_toss(void* rank) {
     long long local_n_in_circle = 0;
     unsigned int seed = time(NULL);
 
-    long bias = ceil(RAND_MAX / 2.0);
-
     long value_x, value_y;
     double v_x, v_y;
     double dist_square;
@@ -34,8 +32,8 @@ void* random_toss(void* rank) {
         value_x = rand_r(&seed);
         value_y = rand_r(&seed);
 
-        v_x = (value_x - bias) / (double)bias;
-        v_y = (value_y - bias) / (double)bias;
+        v_x = value_x / (double)RAND_MAX * 2 - 1;
+        v_y = value_y / (double)RAND_MAX * 2 - 1;
 
         dist_square = v_x * v_x + v_y * v_y;
 
