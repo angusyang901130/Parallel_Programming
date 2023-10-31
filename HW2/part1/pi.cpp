@@ -4,8 +4,13 @@
 #include <climits>
 #include <iomanip>
 #include <cmath>
+#include <x86intrin.h>
+
+#pragma GCC target("avx2")
 
 using namespace std;
+
+const int VECTOR_SIZE = 8;
 
 int n_thread;
 long long n_toss;
@@ -18,29 +23,55 @@ void* random_toss(void* rank) {
     long long cur_rank = (long long)rank;
 
     long long local_n_in_circle = 0;
+    long bias = RAND_MAX / 2;
     unsigned int seed = time(NULL);
 
-    double bias = (double)RAND_MAX / 2;
+    __m256 one_v = _mm256_set1_ps(1);
+    __m256 ps_bias = _mm256_set1_ps(bias);
+    __m256i i_bias = _mm256_set1_epi32(bias);
 
-    long value_x, value_y;
-    double v_x, v_y;
-    double dist_square;
+    long values_x[VECTOR_SIZE];
+    long values_y[VECTOR_SIZE];
 
     long long iter_start = cur_rank * n_toss_per_thread;
     long long iter_fin = iter_start + n_toss_per_thread <= n_toss ? iter_start + n_toss_per_thread : n_toss;
 
-    for (long long toss = iter_start; toss < iter_fin; toss++) {
+    for (long long toss = iter_start; toss < iter_fin; toss += VECTOR_SIZE) {
+        // Generate VECTOR_SIZE random integers in parallel
+        
+        for (int i = 0; i < VECTOR_SIZE; ++i) {
+            if(toss+i < iter_fin){
+                values_x[i] = rand_r(&seed);
+                values_y[i] = rand_r(&seed);
+            }else{
+                values_x[i] = RAND_MAX;
+                values_y[i] = RAND_MAX;
+            }
+        }
 
-        value_x = rand_r(&seed);
-        value_y = rand_r(&seed);
+        __m256i i32_x = _mm256_set_epi32(values_x[7], values_x[6], values_x[5], values_x[4], values_x[3], values_x[2], values_x[1], values_x[0]);
+        __m256i i32_y = _mm256_set_epi32(values_y[7], values_y[6], values_y[5], values_y[4], values_y[3], values_y[2], values_y[1], values_y[0]);
 
-        v_x = (value_x - bias) / bias;
-        v_y = (value_y - bias) / bias;
+        i32_x = _mm256_sub_epi32(i32_x, i_bias);
+        i32_y = _mm256_sub_epi32(i32_y, i_bias);
 
-        dist_square = v_x * v_x + v_y * v_y;
+        __m256 ps_x = _mm256_cvtepi32_ps(i32_x);
+        __m256 ps_y = _mm256_cvtepi32_ps(i32_y);
+        
+        // __m256 pd_x = _mm256_cvtps_ps(ps_x);
+        // __m256 pd_y = _mm256_cvtps_ps(ps_y);
 
-        if(dist_square <= 1)
-            local_n_in_circle++;
+        __m256 v_x = _mm256_div_ps(ps_x, ps_bias);
+        __m256 v_y = _mm256_div_ps(ps_y, ps_bias);
+
+        // Convert to doubles and calculate the square of the distances in parallel
+        __m256 v_x_squared = _mm256_mul_ps(v_x, v_x);
+        __m256 v_y_squared = _mm256_mul_ps(v_y, v_y);
+        __m256 v_squared = _mm256_add_ps(v_x_squared, v_y_squared);
+
+        // Check if the squared distances are less than or equal to 1 (in parallel)
+        __m256 v_cmp = _mm256_cmp_ps(one_v, v_squared, _CMP_GT_OQ);
+        local_n_in_circle += _mm_popcnt_u32(_mm256_movemask_ps(v_cmp));
     }
 
     pthread_mutex_lock(&mutex);
@@ -77,8 +108,9 @@ int main(int argc, char* argv[]) {
     pthread_mutex_destroy(&mutex);
     free(thread_handles);
 
-    // cout << "Estimated Value of PI: " << setprecision(8) << pi_estimate << endl;
+    //cout << "Estimated Value of PI: " << setprecision(8) << pi_estimate << endl;
     cout << setprecision(8) << pi_estimate << endl;
+
 
     return 0;
 }
