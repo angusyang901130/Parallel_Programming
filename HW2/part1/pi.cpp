@@ -20,11 +20,11 @@ long long n_toss_per_thread;
 pthread_mutex_t mutex;
 
 void* random_toss(void* rank) {
-    long long cur_rank = (long long)rank;
+    long cur_rank = (long)rank;
 
     long long local_n_in_circle = 0;
     long bias = RAND_MAX / 2;
-    unsigned int seed = rank;
+    unsigned int seed = cur_rank;
 
     __m256 one_v = _mm256_set1_ps(1);
     __m256 ps_bias = _mm256_set1_ps(bias);
