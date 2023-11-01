@@ -24,7 +24,7 @@ void* random_toss(void* rank) {
 
     long long local_n_in_circle = 0;
     long bias = RAND_MAX / 2;
-    unsigned int seed = time(NULL);
+    unsigned int seed = rank;
 
     __m256 one_v = _mm256_set1_ps(1);
     __m256 ps_bias = _mm256_set1_ps(bias);
@@ -70,7 +70,7 @@ void* random_toss(void* rank) {
         __m256 v_squared = _mm256_add_ps(v_x_squared, v_y_squared);
 
         // Check if the squared distances are less than or equal to 1 (in parallel)
-        __m256 v_cmp = _mm256_cmp_ps(one_v, v_squared, _CMP_GT_OQ);
+        __m256 v_cmp = _mm256_cmp_ps(v_squared, one_v, _CMP_LE_OQ);
         local_n_in_circle += _mm_popcnt_u32(_mm256_movemask_ps(v_cmp));
     }
 
