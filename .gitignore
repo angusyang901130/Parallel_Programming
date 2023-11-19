@@ -1,3 +1,10 @@
+cg
+cg_grader
+pr 
+pr_grader
+bin.graph
+graphTools
+
 *.zip
 *.png
 

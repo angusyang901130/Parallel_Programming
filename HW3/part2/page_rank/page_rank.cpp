@@ -21,12 +21,15 @@ void pageRank(Graph g, double *solution, double damping, double convergence)
   // initialize vertex weights to uniform probability. Double
   // precision scores are used to avoid underflow for large graphs
 
-  int numNodes = num_nodes(g);
-  double equal_prob = 1.0 / numNodes;
-  for (int i = 0; i < numNodes; ++i)
-  {
-    solution[i] = equal_prob;
-  }
+	int numNodes = num_nodes(g);
+	// printf("numNodes: %d\n", numNodes);
+
+	double equal_prob = 1.0 / numNodes;
+
+	#pragma omp parallel for
+	for (int i = 0; i < numNodes; ++i){
+		solution[i] = equal_prob;
+	}
 
   /*
      For PP students: Implement the page rank algorithm here.  You
@@ -56,4 +59,68 @@ void pageRank(Graph g, double *solution, double damping, double convergence)
      }
 
    */
+  
+	int converged = 0;
+	double* new_solution = (double*)malloc(sizeof(double) * g->num_nodes);
+	double global_diff;
+
+	while(!converged){
+
+		global_diff = 0.0;
+
+		#pragma omp parallel for
+		for(int v = 0; v < numNodes; v++){
+			new_solution[v] = 0.0;
+		}
+		
+		#pragma omp parallel for
+		for(int v = 0; v < numNodes; v++)
+		{
+
+			const Vertex* v_in = incoming_begin(g, v);
+			int num_v_in = incoming_size(g, v);
+
+			// double tmp_sol = 0.0;
+
+			// #pragma omp parallel for reduction (+:tmp_sol)
+			for(int i = 0; i < num_v_in; i++){
+				new_solution[v] += solution[v_in[i]] / outgoing_size(g, v_in[i]);
+			}
+
+			new_solution[v] = damping * new_solution[v] + (1.0 - damping) / numNodes;
+		}
+
+		double no_outlink_sol = 0.0;
+
+		#pragma omp parallel for reduction (+:no_outlink_sol)
+		for(int v = 0; v < numNodes; v++){
+			no_outlink_sol += (!outgoing_size(g, v)) * damping * solution[v] / numNodes;
+		}
+
+		#pragma omp parallel for 
+		for(int v = 0; v < numNodes; v++){
+			new_solution[v] += no_outlink_sol;
+		}
+		
+		#pragma omp parallel for reduction (+:global_diff)
+		for(int v = 0; v < numNodes; v++){
+			global_diff += abs(new_solution[v] - solution[v]);
+		}
+
+		// printf("global_diff: %.10lf\n", global_diff);
+
+		converged = (global_diff < convergence);
+
+		#pragma omp parallel for
+		for(int v = 0; v < numNodes; v++){
+			solution[v] = new_solution[v];
+		}
+
+		// double* tmp_ptr = solution;
+		// solution = new_solution;
+		// new_solution = tmp_ptr;
+	}
+
+	free(new_solution);
+
 }
