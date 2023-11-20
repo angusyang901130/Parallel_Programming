@@ -37,43 +37,38 @@ void top_down_step(
     int *distances)
 {
 
+    int nthrds = omp_get_num_threads();
+
+    std::vector<int> tmp_frontier[nthrds];
+
     #pragma omp parallel
+    for (int i = 0; i < frontier->count; i++)
     {
-        #pragma omp for
-        for (int i = 0; i < frontier->count; i++)
-        {
-            int node = frontier->vertices[i];
+        int node = frontier->vertices[i];
 
-            int start_edge = g->outgoing_starts[node];
-            int end_edge = (node == g->num_nodes - 1)
-                            ? g->num_edges
-                            : g->outgoing_starts[node + 1];
+        int start_edge = g->outgoing_starts[node];
+        int end_edge = (node == g->num_nodes - 1)
+                        ? g->num_edges
+                        : g->outgoing_starts[node + 1];
 
-            // attempt to add all neighbors to the new frontier
-            for (int neighbor = start_edge; neighbor < end_edge; neighbor++){
-                int outgoing = g->outgoing_edges[neighbor];
+        // attempt to add all neighbors to the new frontier
+        for (int neighbor = start_edge; neighbor < end_edge; neighbor++){
+            int outgoing = g->outgoing_edges[neighbor];
+            
+            if (distances[outgoing] == NOT_VISITED_MARKER){
                 
-                if (distances[outgoing] == NOT_VISITED_MARKER){
+                distances[outgoing] = distances[node] + 1;
+                int id = omp_get_thread_num();
+                tmp_frontier[id].push_back(outgoing);
 
-                    __sync_bool_compare_and_swap(&distances[outgoing], NOT_VISITED_MARKER, distances[node]+1);
-
-                    // distances[outgoing] = distances[node] + 1;
-
-                    int index;
-
-                    #pragma omp critical
-                    {
-                        index = new_frontier->count++;
-                        // new_frontier->count++;
-                    }
-                    //     index = new_frontier->count++;
-
-                    // __sync_bool_compare_and_swap(&new_frontier->vertices[index], new_frontier->vertices[index], outgoing);
-                    new_frontier->vertices[index] = outgoing;
-                }
             }
         }
+    }
 
+    for(int i = 0; i < nthrds; i++){
+        for(int j = 0; j < tmp_frontier[i].size(); i++){
+            new_frontier->vertices[new_frontier->count++] = tmp_frontier[i][j];
+        }
     }
     
 }
@@ -147,42 +142,46 @@ void down_top_step(
 
     #pragma omp parallel
     {
-        #pragma omp for
-        for (int v = 0; v < g->num_nodes; v++){
+        #pragma omp for collapse(2)
+        {
+            for (int v = 0; v < g->num_nodes; v++)
+            {
         
-            int start_edge = g->outgoing_starts[v];
-            int end_edge = (v == g->num_nodes - 1)
-                            ? g->num_edges
-                            : g->outgoing_starts[v + 1];
+                int start_edge = g->outgoing_starts[v];
+                int end_edge = (v == g->num_nodes - 1)
+                                ? g->num_edges
+                                : g->outgoing_starts[v + 1];
 
-            if(distances[v] != NOT_VISITED_MARKER)
-                continue;
-            
-            // attempt to add all neighbors to the new frontier
-
-            for (int neighbor = start_edge; neighbor < end_edge; neighbor++){
-                int outgoing = g->outgoing_edges[neighbor];
+                if(distances[v] != NOT_VISITED_MARKER)
+                    continue;
                 
-                if (in_frontier[outgoing]){
-                    __sync_bool_compare_and_swap(&distances[v], NOT_VISITED_MARKER, distances[outgoing]+1);
+                // attempt to add all neighbors to the new frontier
 
-                    // distances[outgoing] = distances[node] + 1;
+                for (int neighbor = start_edge; neighbor < end_edge; neighbor++){
+                    int outgoing = g->outgoing_edges[neighbor];
+                    
+                    if (in_frontier[outgoing]){
+                        // __sync_bool_compare_and_swap(&distances[v], NOT_VISITED_MARKER, distances[outgoing]+1);
 
-                    int index;
+                        distances[v] = distances[outgoing] + 1;
 
-                    #pragma omp critical
-                    {
-                        index = new_frontier->count++;
-                        // new_frontier->count++;
+                        int index;
+
+                        #pragma omp critical
+                        {
+                            index = new_frontier->count++;
+                            // new_frontier->count++;
+                        }
+                        //     index = new_frontier->count++;
+
+                        // __sync_bool_compare_and_swap(&new_frontier->vertices[index], new_frontier->vertices[index], outgoing);
+                        new_frontier->vertices[index] = v;
+                        break;
                     }
-                    //     index = new_frontier->count++;
-
-                    // __sync_bool_compare_and_swap(&new_frontier->vertices[index], new_frontier->vertices[index], outgoing);
-                    new_frontier->vertices[index] = v;
-                    break;
                 }
             }
         }
+        
 
     }
 
