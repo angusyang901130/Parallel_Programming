@@ -80,9 +80,6 @@ void pageRank(Graph g, double *solution, double damping, double convergence)
 			const Vertex* v_in = incoming_begin(g, v);
 			int num_v_in = incoming_size(g, v);
 
-			// double tmp_sol = 0.0;
-
-			// #pragma omp parallel for reduction (+:tmp_sol)
 			for(int i = 0; i < num_v_in; i++){
 				new_solution[v] += solution[v_in[i]] / outgoing_size(g, v_in[i]);
 			}
