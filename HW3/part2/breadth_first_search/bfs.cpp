@@ -37,13 +37,12 @@ void top_down_step(
     int *distances)
 {
 
-    int nthrds = omp_get_num_threads();
+    std::vector<int> tmp_frontier[4];
 
-    std::vector<int> tmp_frontier[nthrds];
-
-    #pragma omp parallel
+    #pragma omp parallel for
     for (int i = 0; i < frontier->count; i++)
     {
+
         int node = frontier->vertices[i];
 
         int start_edge = g->outgoing_starts[node];
@@ -60,14 +59,15 @@ void top_down_step(
                 distances[outgoing] = distances[node] + 1;
                 int id = omp_get_thread_num();
                 tmp_frontier[id].push_back(outgoing);
-
+                
             }
         }
     }
 
-    for(int i = 0; i < nthrds; i++){
-        for(int j = 0; j < tmp_frontier[i].size(); i++){
-            new_frontier->vertices[new_frontier->count++] = tmp_frontier[i][j];
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < tmp_frontier[i].size(); j++){
+            new_frontier->vertices[new_frontier->count] = tmp_frontier[i][j];
+            new_frontier->count++;
         }
     }
     
@@ -138,51 +138,44 @@ void down_top_step(
     #pragma omp parallel for
     for(int i = 0; i < frontier->count; i++)
         in_frontier[frontier->vertices[i]] = 1;
+
+    std::vector<int> tmp_frontier[4];
     
 
-    #pragma omp parallel
+    #pragma omp parallel for schedule(guided)
+    for (int v = 0; v < g->num_nodes; v++)
     {
-        #pragma omp for collapse(2)
-        {
-            for (int v = 0; v < g->num_nodes; v++)
-            {
+
+        int start_edge = g->incoming_starts[v];
+        int end_edge = (v == g->num_nodes - 1)
+                        ? g->num_edges
+                        : g->incoming_starts[v + 1];
+
+        if(distances[v] != NOT_VISITED_MARKER)
+            continue;
         
-                int start_edge = g->outgoing_starts[v];
-                int end_edge = (v == g->num_nodes - 1)
-                                ? g->num_edges
-                                : g->outgoing_starts[v + 1];
+        // attempt to add all neighbors to the new frontier
+        
+        for (int neighbor = start_edge; neighbor < end_edge; neighbor++){
+            int incoming = g->incoming_edges[neighbor];
+            
+            if (in_frontier[incoming]){
+                // __sync_bool_compare_and_swap(&distances[v], NOT_VISITED_MARKER, distances[outgoing]+1);
 
-                if(distances[v] != NOT_VISITED_MARKER)
-                    continue;
-                
-                // attempt to add all neighbors to the new frontier
+                distances[v] = distances[incoming] + 1;
+                int id = omp_get_thread_num();
+                tmp_frontier[id].push_back(v);
 
-                for (int neighbor = start_edge; neighbor < end_edge; neighbor++){
-                    int outgoing = g->outgoing_edges[neighbor];
-                    
-                    if (in_frontier[outgoing]){
-                        // __sync_bool_compare_and_swap(&distances[v], NOT_VISITED_MARKER, distances[outgoing]+1);
-
-                        distances[v] = distances[outgoing] + 1;
-
-                        int index;
-
-                        #pragma omp critical
-                        {
-                            index = new_frontier->count++;
-                            // new_frontier->count++;
-                        }
-                        //     index = new_frontier->count++;
-
-                        // __sync_bool_compare_and_swap(&new_frontier->vertices[index], new_frontier->vertices[index], outgoing);
-                        new_frontier->vertices[index] = v;
-                        break;
-                    }
-                }
+                break;
             }
         }
-        
+    }
 
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < tmp_frontier[i].size(); j++){
+            new_frontier->vertices[new_frontier->count] = tmp_frontier[i][j];
+            new_frontier->count++;
+        }
     }
 
     free(in_frontier);
@@ -229,7 +222,7 @@ void bfs_bottom_up(Graph graph, solution *sol)
 
         vertex_set_clear(new_frontier);
 
-        top_down_step(graph, frontier, new_frontier, sol->distances);
+        down_top_step(graph, frontier, new_frontier, sol->distances);
 
 #ifdef VERBOSE
         double end_time = CycleTimer::currentSeconds();
@@ -242,6 +235,68 @@ void bfs_bottom_up(Graph graph, solution *sol)
         new_frontier = tmp;
     }
 
+}
+
+void bfs_hybrid_step(
+    Graph g,
+    vertex_set *frontier,
+    vertex_set *new_frontier,
+    int *distances)
+{
+
+    int* in_frontier = (int*)malloc(sizeof(int) * g->num_nodes);
+
+    // vertex_set* in_frontier = &list;
+
+    #pragma omp parallel for
+    for(int i = 0; i < g->num_nodes; i++)
+        in_frontier[i] = 0;
+
+    #pragma omp parallel for
+    for(int i = 0; i < frontier->count; i++)
+        in_frontier[frontier->vertices[i]] = 1;
+
+    std::vector<int> tmp_frontier[4];
+    
+
+    #pragma omp parallel for schedule(guided)
+    for (int v = 0; v < g->num_nodes; v++)
+    {
+
+        int start_edge = g->incoming_starts[v];
+        int end_edge = (v == g->num_nodes - 1)
+                        ? g->num_edges
+                        : g->incoming_starts[v + 1];
+
+        if(distances[v] != NOT_VISITED_MARKER)
+            continue;
+        
+        // attempt to add all neighbors to the new frontier
+        
+        for (int neighbor = start_edge; neighbor < end_edge; neighbor++){
+            int incoming = g->incoming_edges[neighbor];
+            
+            if (in_frontier[incoming]){
+                // __sync_bool_compare_and_swap(&distances[v], NOT_VISITED_MARKER, distances[outgoing]+1);
+
+                distances[v] = distances[incoming] + 1;
+                int id = omp_get_thread_num();
+                tmp_frontier[id].push_back(v);
+
+                break;
+            }
+        }
+    }
+
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < tmp_frontier[i].size(); j++){
+            new_frontier->vertices[new_frontier->count] = tmp_frontier[i][j];
+            new_frontier->count++;
+        }
+    }
+
+    free(in_frontier);
+    
 }
 
 void bfs_hybrid(Graph graph, solution *sol)
