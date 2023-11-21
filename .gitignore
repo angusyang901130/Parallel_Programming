@@ -7,6 +7,8 @@ bfs_grader
 bin.graph
 graphTools
 
+*.tgz
+
 *.zip
 *.png
 
