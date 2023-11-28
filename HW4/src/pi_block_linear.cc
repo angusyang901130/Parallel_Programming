@@ -22,7 +22,6 @@ int main(int argc, char **argv)
 
     long int count = 0;
     double rand_bias = RAND_MAX / 2;
-    char msg[100];
 
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -44,8 +43,7 @@ int main(int argc, char **argv)
                 count++;
         }
 
-        sprintf(msg, "%ld", count);
-        MPI_Send(msg, strlen(msg)+1, MPI_LONG, dst, tag, MPI_COMM_WORLD);
+        MPI_Send(&count, 1, MPI_LONG, dst, tag, MPI_COMM_WORLD);
         
     }
     else if (world_rank == 0)
@@ -63,10 +61,8 @@ int main(int argc, char **argv)
         }
         
         for(int src = 1; src < world_size; src++){
-            MPI_Recv(msg, 100, MPI_LONG, src, tag, MPI_COMM_WORLD, &status);
-
             long int recv_cnt;
-            sscanf(msg, "%ld", &recv_cnt);
+            MPI_Recv(&recv_cnt, 1, MPI_LONG, src, tag, MPI_COMM_WORLD, &status);
             // printf("count: %ld\n", recv_cnt);
 
             count += recv_cnt;
