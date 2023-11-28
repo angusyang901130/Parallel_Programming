@@ -16,19 +16,67 @@ int main(int argc, char **argv)
     // ---
 
     // TODO: init MPI
+    MPI_Status status;
+    int dst = 0;
+    int tag = 0;
+
+    long int count = 0;
+    double rand_bias = RAND_MAX / 2;
+    char msg[100];
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    unsigned int seed = world_rank;
+
+    double x, y, dist_sq;
 
     if (world_rank > 0)
     {
         // TODO: handle workers
+        for(int i = world_rank; i < tosses; i += world_size){
+            x = (rand_r(&seed) - rand_bias) / rand_bias;
+            y = (rand_r(&seed) - rand_bias) / rand_bias;
+
+            dist_sq = x * x + y * y;
+
+            if(dist_sq <= 1)
+                count++;
+        }
+
+        sprintf(msg, "%ld", count);
+        MPI_Send(msg, strlen(msg)+1, MPI_LONG, dst, tag, MPI_COMM_WORLD);
+        
     }
     else if (world_rank == 0)
     {
         // TODO: master
+
+        for(int i = 0; i < tosses; i += world_size){
+            x = (rand_r(&seed) - rand_bias) / rand_bias;
+            y = (rand_r(&seed) - rand_bias) / rand_bias;
+
+            dist_sq = x * x + y * y;
+
+            if(dist_sq <= 1)
+                count++;
+        }
+        
+        for(int src = 1; src < world_size; src++){
+            MPI_Recv(msg, 100, MPI_LONG, src, tag, MPI_COMM_WORLD, &status);
+
+            long int recv_cnt;
+            sscanf(msg, "%ld", &recv_cnt);
+            // printf("count: %ld\n", recv_cnt);
+
+            count += recv_cnt;
+        }
     }
 
     if (world_rank == 0)
     {
         // TODO: process PI result
+        pi_result = 4 * count / (double)tosses;
 
         // --- DON'T TOUCH ---
         double end_time = MPI_Wtime();
