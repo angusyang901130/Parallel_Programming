@@ -35,3 +35,21 @@ echo "<<stu>>"
 mpirun -np 4 --hostfile hosts pi_gather 1000000000 2>/dev/null
 echo "<<ref>>"
 mpirun -np 4 --hostfile hosts /home/HW4/ref/pi_gather 1000000000 2>/dev/null
+
+#1.2.5
+echo "===== Task 1.2.5 ====="
+mpicxx pi_reduce.cc -o pi_reduce
+parallel-scp -h hosts -r ~/Parallel_Programming/HW4/src/pi_reduce ~/pi_reduce >/dev/null
+echo "<<stu>>"
+mpirun -np 4 --hostfile hosts pi_reduce 1000000000 2>/dev/null
+echo "<<ref>>"
+mpirun -np 4 --hostfile hosts /home/HW4/ref/pi_reduce 1000000000 2>/dev/null
+
+#1.2.6
+echo "===== Task 1.2.6 ====="
+mpicxx pi_one_side.cc -o pi_one_side
+parallel-scp -h hosts -r ~/Parallel_Programming/HW4/src/pi_one_side ~/pi_one_side >/dev/null
+echo "<<stu>>"
+mpirun -np 4 --hostfile hosts pi_one_side 1000000000 2>/dev/null
+echo "<<ref>>"
+mpirun -np 4 --hostfile hosts /home/HW4/ref/pi_one_side 1000000000 2>/dev/null
