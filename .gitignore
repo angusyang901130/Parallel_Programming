@@ -7,6 +7,15 @@ bfs_grader
 bin.graph
 graphTools
 
+mpi_hello
+pi_block_linear
+pi_block_tree
+pi_gather
+pi_nonblock_linear
+pi_one_side
+pi_reduce
+ping_pong
+
 *.tgz
 
 *.zip

@@ -26,3 +26,12 @@ echo "<<stu>>"
 mpirun -np 4 --hostfile hosts pi_nonblock_linear 1000000000 2>/dev/null
 echo "<<ref>>"
 mpirun -np 4 --hostfile hosts /home/HW4/ref/pi_nonblock_linear 1000000000 2>/dev/null
+
+#1.2.4
+echo "===== Task 1.2.4 ====="
+mpicxx pi_gather.cc -o pi_gather
+parallel-scp -h hosts -r ~/Parallel_Programming/HW4/src/pi_gather ~/pi_gather >/dev/null
+echo "<<stu>>"
+mpirun -np 4 --hostfile hosts pi_gather 1000000000 2>/dev/null
+echo "<<ref>>"
+mpirun -np 4 --hostfile hosts /home/HW4/ref/pi_gather 1000000000 2>/dev/null
