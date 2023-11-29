@@ -49,8 +49,8 @@ int main(int argc, char **argv)
 
         count += recv_cnt;
 
-        tmp_rank /= 2;
-        level *= 2;
+        tmp_rank = tmp_rank >> 1;
+        level = level << 1;
     }
 
     if(world_rank > 0){
