@@ -18,6 +18,8 @@ ping_pong
 config
 host*
 
+*.txt
+
 *.tgz
 
 *.zip
