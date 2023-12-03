@@ -188,10 +188,10 @@ void matrix_multiply(const int n, const int m, const int l,
     if(world_rank == 0){
         for(int i = 0; i < n; i++){
             for(int j = 0; j < l; j++){
-                if(j == l-1)
-                    printf("%d\n", res_c_mat[i*l + j]);
-                else printf("%d ", res_c_mat[i*l + j]);
+                printf("%d ", res_c_mat[i*l + j]);
             }
+
+            printf("\n");
         }
     }
 }
