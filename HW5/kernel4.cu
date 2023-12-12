@@ -53,7 +53,7 @@ void hostFE (float upperX, float upperY, float lowerX, float lowerY, int* img, i
     int* deviceArray;
     cudaMalloc(&deviceArray, N * sizeof(int));
 
-    dim3 threadsPerBlock(16, 16);
+    dim3 threadsPerBlock(8, 4);
 
     int blocks_x = resX % threadsPerBlock.x ? resX / threadsPerBlock.x + 1 : resX / threadsPerBlock.x;
     int blocks_y = resY % threadsPerBlock.y ? resY / threadsPerBlock.y + 1 : resY / threadsPerBlock.y;
