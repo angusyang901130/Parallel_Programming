@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-__global__ void mandelKernel(float lowerX, float lowerY, float stepX, float stepY, int width, int height, int maxIterations, int* result) {
+__global__ void mandelKernel(float lowerX, float lowerY, float stepX, float stepY, int width, int height, int maxIterations, int* result, size_t pitch) {
     // To avoid error caused by the floating number, use the following pseudo code
     //
 
@@ -33,7 +33,9 @@ __global__ void mandelKernel(float lowerX, float lowerY, float stepX, float step
         z_im = c_im + new_im;
     }
 
-    result[thisY * width + thisX] = i;
+    char* row = (char*)result + thisY * pitch;
+    int* elementAddress = (int*)(row + thisX * sizeof(int));
+    *elementAddress = i;
 }
 
 // Host front-end function that allocates the memory and launches the GPU kernel
@@ -42,16 +44,18 @@ void hostFE (float upperX, float upperY, float lowerX, float lowerY, int* img, i
     float stepX = (upperX - lowerX) / resX;
     float stepY = (upperY - lowerY) / resY;
 
-    int N = resX * resY;
-
     // printf("width: %d, height: %d\n", resX, resY);Y
     // printf("upperX: %f, upperY, %f, lowerX: %f, lowerY: %f\n", upperX, upperY, lowerX, lowerY);
     // printf("stepX: %f, stepY: %f\n", stepX, stepY);
 
-    int* hostArray = (int*)malloc(N * sizeof(int));
-
     int* deviceArray;
-    cudaMalloc(&deviceArray, N * sizeof(int));
+    size_t pitch;
+    cudaMallocPitch((void**)&deviceArray, &pitch, resX * sizeof(int), resY);
+
+    int nbytes = pitch * resY;
+
+    int* hostArray;
+    cudaHostAlloc((void**)&hostArray, nbytes, cudaHostAllocDefault);
 
     dim3 threadsPerBlock(16, 16);
 
@@ -60,13 +64,19 @@ void hostFE (float upperX, float upperY, float lowerX, float lowerY, int* img, i
 
     dim3 numBlocks(blocks_x, blocks_y);
 
-    mandelKernel<<<numBlocks, threadsPerBlock>>> (lowerX, lowerY, stepX, stepY, resX, resY, maxIterations, deviceArray);
+    mandelKernel<<<numBlocks, threadsPerBlock>>> (lowerX, lowerY, stepX, stepY, resX, resY, maxIterations, deviceArray, pitch);
 
-    cudaMemcpy(hostArray, deviceArray, N * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(hostArray, deviceArray, nbytes, cudaMemcpyDeviceToHost);
     
-    memcpy(img, hostArray, N * sizeof(int));
+    for (int row = 0; row < resY; row++){
 
-    free(hostArray);
+        char* hostRowAddress = (char*)hostArray + row * pitch;
+        int* imgRowAddress = img + row * resX;
+
+        memcpy(imgRowAddress, hostRowAddress, resX * sizeof(int));
+    }
+
+    cudaFreeHost(hostArray);
     cudaFree(deviceArray);
 
 }
