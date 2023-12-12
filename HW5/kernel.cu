@@ -9,12 +9,12 @@ __global__ void mandelKernel(float lowerX, float lowerY, float stepX, float step
     int thisX = blockIdx.x * blockDim.x + threadIdx.x;  // col
     // int thisY = blockIdx.y * blockDim.y + threadIdx.y;  // row
 
+    if(thisX >= width)
+        return;
+
     int stride = blockDim.y; 
 
     for (int thisY = threadIdx.y; thisY < height; thisY += stride){
-
-        if(thisX >= width || thisY >= height)
-            continue;
 
         float c_re = lowerX + thisX * stepX;
         float c_im = lowerY + thisY * stepY;
