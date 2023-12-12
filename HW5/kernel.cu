@@ -7,35 +7,40 @@ __global__ void mandelKernel(float lowerX, float lowerY, float stepX, float step
     //
 
     int thisX = blockIdx.x * blockDim.x + threadIdx.x;  // col
-    int thisY = blockIdx.y * blockDim.y + threadIdx.y;  // row
+    // int thisY = blockIdx.y * blockDim.y + threadIdx.y;  // row
 
-    if(thisX >= width || thisY >= height){
-        return;
-    }
+    int stride = blockDim.y; 
+
+    for (int thisY = threadIdx.y; thisY < height; thisY += stride){
+
+        if(thisX >= width || thisY >= height)
+            continue;
+
+        float c_re = lowerX + thisX * stepX;
+        float c_im = lowerY + thisY * stepY;
+
+        float z_re = c_re;
+        float z_im = c_im;
+        int i;
+
+        for (i = 0; i < maxIterations; ++i){
+
+            if (z_re * z_re + z_im * z_im > 4.f)
+                break;
+
+            float new_re = z_re * z_re - z_im * z_im;
+            float new_im = 2.f * z_re * z_im;
+
+            z_re = c_re + new_re;
+            z_im = c_im + new_im;
+        }
+
+        char* row = (char*)result + thisY * pitch;
+        int* elementAddress = (int*)(row + thisX * sizeof(int));
+        *elementAddress = i;
         
-    
-    float c_re = lowerX + thisX * stepX;
-    float c_im = lowerY + thisY * stepY;
-
-    float z_re = c_re;
-    float z_im = c_im;
-    int i;
-
-    for (i = 0; i < maxIterations; ++i){
-
-        if (z_re * z_re + z_im * z_im > 4.f)
-            break;
-
-        float new_re = z_re * z_re - z_im * z_im;
-        float new_im = 2.f * z_re * z_im;
-
-        z_re = c_re + new_re;
-        z_im = c_im + new_im;
     }
 
-    char* row = (char*)result + thisY * pitch;
-    int* elementAddress = (int*)(row + thisX * sizeof(int));
-    *elementAddress = i;
 }
 
 // Host front-end function that allocates the memory and launches the GPU kernel
@@ -59,10 +64,12 @@ void hostFE (float upperX, float upperY, float lowerX, float lowerY, int* img, i
 
     dim3 threadsPerBlock(16, 16);
 
-    int blocks_x = resX % threadsPerBlock.x ? resX / threadsPerBlock.x + 1 : resX / threadsPerBlock.x;
-    int blocks_y = resY % threadsPerBlock.y ? resY / threadsPerBlock.y + 1 : resY / threadsPerBlock.y;
+    int numBlocks = resX % threadsPerBlock.x ? resX / threadsPerBlock.x + 1 : resX / threadsPerBlock.x;
+    // int blocks_x = resX % threadsPerBlock.x ? resX / threadsPerBlock.x + 1 : resX / threadsPerBlock.x;
+    // int blocks_y = resY % threadsPerBlock.y ? resY / threadsPerBlock.y + 1 : resY / threadsPerBlock.y;
+    // int blocks_y = 1;
 
-    dim3 numBlocks(blocks_x, blocks_y);
+    // dim3 numBlocks(blocks_x, blocks_y);
 
     mandelKernel<<<numBlocks, threadsPerBlock>>> (lowerX, lowerY, stepX, stepY, resX, resY, maxIterations, deviceArray, pitch);
 
