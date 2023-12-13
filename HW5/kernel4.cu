@@ -48,12 +48,12 @@ void hostFE (float upperX, float upperY, float lowerX, float lowerY, int* img, i
     // printf("upperX: %f, upperY, %f, lowerX: %f, lowerY: %f\n", upperX, upperY, lowerX, lowerY);
     // printf("stepX: %f, stepY: %f\n", stepX, stepY);
 
-    int* hostArray = (int*)malloc(N * sizeof(int));
+    // int* hostArray = (int*)malloc(N * sizeof(int));
 
     int* deviceArray;
     cudaMalloc(&deviceArray, N * sizeof(int));
 
-    dim3 threadsPerBlock(8, 4);
+    dim3 threadsPerBlock(4, 8);
 
     int blocks_x = resX % threadsPerBlock.x ? resX / threadsPerBlock.x + 1 : resX / threadsPerBlock.x;
     int blocks_y = resY % threadsPerBlock.y ? resY / threadsPerBlock.y + 1 : resY / threadsPerBlock.y;
@@ -62,11 +62,12 @@ void hostFE (float upperX, float upperY, float lowerX, float lowerY, int* img, i
 
     mandelKernel<<<numBlocks, threadsPerBlock>>> (lowerX, lowerY, stepX, stepY, resX, resY, maxIterations, deviceArray);
 
-    cudaMemcpy(hostArray, deviceArray, N * sizeof(int), cudaMemcpyDeviceToHost);
+    // cudaMemcpy(hostArray, deviceArray, N * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(img, deviceArray, N * sizeof(int), cudaMemcpyDeviceToHost);
     
-    memcpy(img, hostArray, N * sizeof(int));
+    // memcpy(img, hostArray, N * sizeof(int));
 
-    free(hostArray);
+    // free(hostArray);
     cudaFree(deviceArray);
 
 }
