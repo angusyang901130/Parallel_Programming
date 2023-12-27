@@ -5,19 +5,8 @@ __kernel void convolution(__global float* inputImage,
                           int imageWidth, 
                           int filterWidth) 
 {   
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-
-    int local_x = get_local_id(0);
-    int local_y = get_local_id(1);
-
-    int localDim_x = get_local_size(0);
-    int localDim_y = get_local_size(1);
-
-    int halffilterSize = filterWidth / 2;
-
-    int imageX = x * localDim_x + local_x;
-    int imageY = y * localDim_y + local_y;
+    int imageX = get_global_id(0);
+    int imageY = get_global_id(1);
     
     float sum = 0.0f;
     for (i = -halffilterSize; i <= halffilterSize; i++)
