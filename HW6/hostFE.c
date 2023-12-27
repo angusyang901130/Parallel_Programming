@@ -21,8 +21,6 @@ void hostFE(int filterWidth, float *filter, int imageHeight, int imageWidth,
     cl_mem filterBuffer = clCreateBuffer(*context, CL_MEM_READ_ONLY, filterSize* sizeof(float), NULL, NULL);
     cl_mem outputBuffer = clCreateBuffer(*context, CL_MEM_READ_WRITE, imageSize* sizeof(float), NULL, NULL);
 
-    for (int i = 0; i < )
-
     // printf("Barrier 2\n");
 
     status = clEnqueueWriteBuffer(cmdQueue, inputBuffer, CL_TRUE, 0, imageSize* sizeof(float), (void*)inputImage, 0, NULL, NULL);
