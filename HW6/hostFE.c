@@ -35,9 +35,9 @@ void hostFE(int filterWidth, float *filter, int imageHeight, int imageWidth,
 
     // printf("Barrier 3\n");
 
-    size_t globalWorkSize[2] = {imageHeight, imageWidth};
+    size_t globalWorkSize[2] = {imageWidth, imageHeight};
     size_t localWorkSize[2] = {16, 16};
-    clEnqueueNDRangeKernel(cmdQueue, kernel, 2, 0, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    clEnqueueNDRangeKernel(cmdQueue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
 
     clEnqueueReadBuffer(*context, outputImage, CL_TRUE, 0, imageSize, (void*)outputImage, NULL, NULL, NULL);
 
