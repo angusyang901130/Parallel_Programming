@@ -18,10 +18,14 @@ ping_pong
 matmul
 matmul_funct
 config
-host*
+hosts.txt
+host.txt
+hosts
 
 *.ppm
 mandelbrot
+
+conv
 
 *.txt
 
