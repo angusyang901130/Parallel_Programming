@@ -26,6 +26,8 @@ hosts
 mandelbrot
 
 conv
+output.bmp
+ref.bmp
 
 *.txt
 

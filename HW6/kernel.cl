@@ -7,11 +7,13 @@ __kernel void convolution(__global float* inputImage,
 {   
     int imageX = get_global_id(0);
     int imageY = get_global_id(1);
+
+    int halffilterSize = filterWidth / 2;
     
     float sum = 0.0f;
-    for (i = -halffilterSize; i <= halffilterSize; i++)
+    for (int i = -halffilterSize; i <= halffilterSize; i++)
     {
-        for (j = -halffilterSize; j <= halffilterSize; j++)
+        for (int j = -halffilterSize; j <= halffilterSize; j++)
         {
 
             if (imageY + i >= 0 && imageY + i < imageHeight &&
