@@ -28,6 +28,7 @@ mandelbrot
 conv
 output.bmp
 ref.bmp
+conv_cuda
 
 *.txt
 
